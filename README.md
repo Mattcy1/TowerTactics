@@ -15,7 +15,7 @@ Tower Tactics is a mod that revamps the entire tower system with three mechanics
 
 ### How does Fatigue Work?
 
-Every time a tower shoots, there is a 1/15 chance it will become more fatigued.
+Every time a tower shoots, there is a 1/40 chance it will become more fatigued.
 - At 30 fatigue, the tower takes an extra 5 seconds to shoot.
 - You can reset its fatigue and rate by feeding it bananas.
 - You can buy bananas from the shop.
