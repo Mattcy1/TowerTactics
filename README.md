@@ -9,9 +9,9 @@
 
 Tower Tactics is a mod that revamps the entire tower system with three mechanics:
 
-- Fatigue
-- Taxes
-- Ammo
+- * Fatigue
+- * Taxes
+- * Ammo
 
 ### How does Fatigue Work?
 
