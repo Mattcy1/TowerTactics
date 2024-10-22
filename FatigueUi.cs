@@ -14,6 +14,8 @@ using static TowerTactics.TowerTactics;
 using TowerTactics;
 using Il2CppAssets.Scripts.Simulation.Towers;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame.TowerSelectionMenu;
+using TowerTactics.Values;
+using System;
 
 namespace Ui
 {
@@ -22,7 +24,7 @@ namespace Ui
     {
         public static FatigueUi? instance = null;
         public ModHelperImage? Image;
-        public static Tower? selectedTower1 = null;
+        public static Tower? tower = null;
         public void Close()
         {
             if (gameObject)
@@ -41,13 +43,19 @@ namespace Ui
             if (InGame.instance != null)
             {
                 RectTransform rect = InGame.instance.uiRect;
-                var panel = rect.gameObject.AddModHelperPanel(new("Panel_", 0, -1100, 750, 450), ModContent.GetSpriteReference<TowerTactics.TowerTactics>("BarBackground").GetGUID());
+                var panel = rect.gameObject.AddModHelperPanel(new("Panel_", 0, -1100, 750, 450), VanillaSprites.BrownInsertPanel);
+                panel.AddImage(new("Outline", 750, 450), ModContent.GetTextureGUID<TowerTactics.TowerTactics>("BarBackground"));
+
+                panel.AddText(new("Text", 0, 175, 750, 100), "Fatigue").Text.enableAutoSizing = true;
+
                 instance = panel.AddComponent<FatigueUi>();
-                string towerModelBaseId = selectedTower1.towerModel.baseId;
-                int Fatigue = TowerTactics.TowerTactics.TowerFatigue[towerModelBaseId];
-                float barSize = 25 * Fatigue;
+                int Fatigue = TowerFatigue[tower.towerModel.baseId];
+                float barSize = 750f / MaxFatigue * Fatigue;
                 var bar = panel.AddImage(new("Image_", 0, 0, barSize, 450), ModContent.GetSpriteReference<TowerTactics.TowerTactics>("bar").GetGUID());
                 instance.Image = bar;
+
+                bar.AddText(new("Text", 350, 150), $"{Fatigue}/{MaxFatigue.GetValue()}\n (+{Math.Round(Fatigue * 0.05f, 2)}s/shot)", 45);
+                //instance.Image.RectTransform.localScale = new(barSize, instance.Image.RectTransform.localScale.y, instance.Image.RectTransform.localScale.z);
             }
         }
     }

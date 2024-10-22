@@ -56,12 +56,13 @@ namespace Ui
                     }
                     TowerTactics.Values.Values.banana = TowerTactics.Values.Values.banana - 1;
                     var Tower = selectedTower;
-                    var Baseid = selectedTower.towerModel.baseId;
-                    TowerFatigueManager.ResetRateAsync(Baseid);
+                    var id = selectedTower.towerModel.baseId;
+                    TowerFatigueManager.ResetRateAsync(id);
+                    FatigueUi.CreatePanel();
                 }
                 else if (TowerTactics.Values.Values.banana == 0 && TowerTactics.TowerTactics.Popup == true)
                 {
-                    PopupScreen.instance?.ShowOkPopup("You do not have any banana buy one from the shop!");
+                    PopupScreen.instance?.ShowOkPopup("You do not have any bananas, buy one from the shop!");
                 }
             }));
             Feed.AddText(new("Title_", 0, 0, 300, 150), "Feed Monkey", 45);
