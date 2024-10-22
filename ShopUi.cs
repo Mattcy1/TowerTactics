@@ -9,6 +9,7 @@ using BTD_Mod_Helper.Api;
 using UnityEngine.UI;
 using Il2CppAssets.Scripts.Unity.UI_New.Popups;
 using System;
+using BTD_Mod_Helper.Api.Helpers;
 
 namespace Ui
 {
@@ -83,23 +84,23 @@ namespace Ui
                 var image4 = panel.AddImage(new("Image_", 350, -200, 350), ModContent.GetSpriteReference<TowerTactics.TowerTactics>("BuyBanana").GetGUID());
                 var BuyBanana = panel.AddButton(new("Button_", -350, -450, 300, 150), VanillaSprites.GreenBtnLong, new System.Action(() =>
                 {
-                    if (InGame.instance.GetCashManager().cash.Value >= 500)
+                    if (InGame.instance.GetCashManager().cash.Value >= CostHelper.CostForDifficulty(500, InGame.instance))
                     {
-                        InGame.instance.AddCash(-500);
+                        InGame.instance.AddCash(-CostHelper.CostForDifficulty(500, InGame.instance));
                         TowerTactics.Values.Values.banana += 1;
                         if (TowerTactics.TowerTactics.Popup == true)
                         {
-                            PopupScreen.instance?.ShowOkPopup("You have bought 1 banana for 500");
+                            PopupScreen.instance?.ShowOkPopup($"You have bought 1 banana for {CostHelper.CostForDifficulty(500, InGame.instance)}");
                         }
                     }
                 }));
-                BuyBanana.AddText(new("Title_", 0, 0, 300, 150), "Buy 1 Banana for 500!", 45);
+                BuyBanana.AddText(new("Title_", 0, 0, 300, 150), $"Buy 1 Banana for {CostHelper.CostForDifficulty(500, InGame.instance)}!", 45);
 
                 var BuyBulkBanana = panel.AddButton(new("Button_", 350, -450, 300, 150), VanillaSprites.GreenBtnLong, new Action(() =>
                 {
                     if (PopupScreen.instance != null)
                     {
-                        PopupScreen.instance.ShowSetValuePopup("Buy Bananas!", "500 Cash Per!", new Action<int>(input =>
+                        PopupScreen.instance.ShowSetValuePopup("Buy Bananas!", $"{CostHelper.CostForDifficulty(500, InGame.instance)} Cash Per!", new Action<int>(input =>
                         {
                             if (input * 500 > InGame.instance.GetCashManager().cash.Value)
                             {
@@ -107,17 +108,17 @@ namespace Ui
                             }
                             else
                             {
-                                InGame.instance.AddCash(-input * 500);
+                                InGame.instance.AddCash(-input * CostHelper.CostForDifficulty(500, InGame.instance));
                                 TowerTactics.Values.Values.banana += input;
                                 if (TowerTactics.TowerTactics.Popup == true)
                                 {
                                     if (input == 1)
                                     {
-                                        PopupScreen.instance?.ShowOkPopup($"You have bought 1 banana for 500");
+                                        PopupScreen.instance?.ShowOkPopup($"You have bought 1 banana for {CostHelper.CostForDifficulty(500, InGame.instance)}");
                                     }
                                     else
                                     {
-                                        PopupScreen.instance?.ShowOkPopup($"You have bought {input} bananas for {input * 500}");
+                                        PopupScreen.instance?.ShowOkPopup($"You have bought {input} bananas for {input * CostHelper.CostForDifficulty(500, InGame.instance)}");
                                     }
                                 }
                             }
