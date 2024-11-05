@@ -2,8 +2,8 @@
 
 public static class ModHelperData
 {
-    public const string WorksOnVersion = "43.0";
-    public const string Version = "1.0.0";
+    public const string WorksOnVersion = "45.3";
+    public const string Version = "1.1";
     public const string icon = "Icon";
     public const string Name = "Tower Tactics";
 
