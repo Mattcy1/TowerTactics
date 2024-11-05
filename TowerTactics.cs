@@ -18,16 +18,17 @@ using Il2CppAssets.Scripts.Models.Towers.Behaviors.Attack;
 using System;
 using Il2CppAssets.Scripts.Models.Towers;
 using static MelonLoader.MelonLogger;
-using Il2CppAssets.Scripts.Unity;
 using Il2CppAssets.Scripts.Data;
 using Il2CppAssets.Scripts.Models.TowerSets;
-using Il2CppAssets.Scripts.Unity.Towers;
 using Il2CppAssets.Scripts.Simulation.Towers.Projectiles;
 using Il2CppAssets.Scripts.Models.Rounds;
 using Il2CppAssets.Scripts.Models.ServerEvents;
 using Il2CppAssets.Scripts.Models.Gameplay.Mods;
 using Il2CppAssets.Scripts.Simulation.Track;
 using Il2CppAssets.Scripts.Simulation;
+using Il2CppAssets.Scripts;
+using Il2CppAssets.Scripts.Unity.Bridge;
+using Il2CppAssets.Scripts.Models.Profile;
 
 [assembly: MelonInfo(typeof(TowerTactics.TowerTactics), ModHelperData.Name, ModHelperData.Version, ModHelperData.RepoOwner)]
 [assembly: MelonGame("Ninja Kiwi", "BloonsTD6")]
@@ -39,11 +40,25 @@ public class TowerTactics : BloonsTD6Mod
     public bool PopupShown = false;
     public static Dictionary<string, int> TowerFatigue = new Dictionary<string, int>();
     public static Dictionary<string, float> OriginalAttackRates = new Dictionary<string, float>();
+
+    public static readonly ModSettingInt MaxFatigue = new(30)
+    {
+        description = "What's the max fatigue a tower can get? (Higher values mean towers can get slower than usual)"
+    };
+
+    public static readonly ModSettingEnum<TaxUI.TaxMode> TaxType = new(TaxUI.TaxMode.IncomeAndSell)
+    {
+        description = "Current Cash: Tax amounts are based off of how much money you have when round 10 starts.\n" +
+        "Income: Tax amounts are based off of the amount of cash you've made in the last 10 rounds.\n" +
+        "Income And Sell: Just like Income, but if you don't have enough your towers will be sold to pay off your debt."
+    };
+
     public override void OnApplicationStart()
     {
         ModHelper.Msg<TowerTactics>("Tower Tactics loaded!");
         Values.Values.ammo = 100;
         Values.Values.rounds = 9;
+        TaxUI.taxedIncome = 0;
     }
     public override void OnTowerSelected(Il2CppAssets.Scripts.Simulation.Towers.Tower tower)
     {
@@ -57,9 +72,17 @@ public class TowerTactics : BloonsTD6Mod
             ShopButton.instance.Close();
         }
         Ui.FedUI.selectedTower = tower;
-        Ui.FatigueUi.selectedTower1 = tower;
+        Ui.FatigueUi.tower = tower;
         Ui.FedUI.CreatePanel();
         Ui.FatigueUi.CreatePanel();
+    }
+
+    public override void OnCashAdded(double amount, Simulation.CashType from, int cashIndex, Simulation.CashSource source, Tower tower)
+    {
+        if (from != Simulation.CashType.CoopCash && source != Simulation.CashSource.TowerSold && amount > 0) 
+        {
+            TaxUI.taxedIncome += amount;
+        }
     }
 
     public override void OnNewGameModel(GameModel result)
@@ -69,6 +92,7 @@ public class TowerTactics : BloonsTD6Mod
         Values.Values.ammo = 100;
         Values.Values.rounds = 9;
         Values.Values.banana = 3;
+        TaxUI.taxedIncome = 0;
         TowerFatigue.Clear();
     }
     public override void OnRestart()
@@ -95,6 +119,7 @@ public class TowerTactics : BloonsTD6Mod
         Values.Values.ammo = 100;
         Values.Values.rounds = 9;
         Values.Values.banana = 3;
+        TaxUI.taxedIncome = 0;
         //PopupScreen.instance?.ShowOkPopup($"Would you like to pay the tower's fee of {InGame.instance.GetCashManager().cash.Value / 2}? If you refuse, action will be taken.");
     }
     public override void OnTowerDeselected(Il2CppAssets.Scripts.Simulation.Towers.Tower tower)
@@ -102,7 +127,7 @@ public class TowerTactics : BloonsTD6Mod
         CounterUi.CreatePanel();
         ShopButton.CreatePanel();
         Ui.FedUI.selectedTower = null;
-        Ui.FatigueUi.selectedTower1 = null;
+        Ui.FatigueUi.tower = null;
         if (Ui.FedUI.instance != null)
         {
             Ui.FedUI.instance.Close();
@@ -192,12 +217,12 @@ public static class Bloon_Damage
     {
         if (tower != null && !__instance.bloonModel.IsRegrowBloon())
         {
-            if (random.Next(40) == 0 && Values.Values.IsResting == false && TowerTactics.TowerFatigue[tower.towerModel.baseId] < 30)
+            if (random.Next(40) == 0 && Values.Values.IsResting == false && TowerTactics.TowerFatigue[tower.towerModel.baseId] < TowerTactics.MaxFatigue)
             {
                 TowerFatigueManager.IncreaseFatigueForTowerType(tower.towerModel.baseId);
                 TowerFatigueManager.ApplyFatigueDebuff(tower.towerModel.baseId);
 
-                ModHelper.Msg<TowerTactics>(TowerTactics.TowerFatigue[tower.towerModel.baseId]);
+                //ModHelper.Msg<TowerTactics>(TowerTactics.TowerFatigue[tower.towerModel.baseId]);
 
                 if (InGame.instance != null && FatigueUi.instance != null)
                 {
@@ -207,7 +232,7 @@ public static class Bloon_Damage
             }
             else if (random.Next(40) == 0 && Values.Values.IsResting == true)
             {
-                ModHelper.Msg<TowerTactics>("Cannot add fatigue, fatigue is in reset state");
+                //ModHelper.Msg<TowerTactics>("Cannot add fatigue, fatigue is in reset state");
             }
         }
     }
@@ -220,20 +245,20 @@ public static class Bloon_Damage
         public static void Postfix(Il2CppAssets.Scripts.Simulation.Towers.Tower __instance)
         {
             string towerModelBaseId = __instance.towerModel.baseId;
-            if (!TowerTactics.TowerFatigue.ContainsKey(towerModelBaseId))
+            if (!TowerTactics.TowerFatigue.ContainsKey(__instance.towerModel.baseId))
             {
-                TowerTactics.TowerFatigue[towerModelBaseId] = 0;
+                TowerTactics.TowerFatigue[__instance.towerModel.baseId] = 0;
             }
-            else if (TowerTactics.TowerFatigue.ContainsKey(towerModelBaseId))
+            else if (TowerTactics.TowerFatigue.ContainsKey(__instance.towerModel.baseId))
             {
                 var towerModel = __instance.rootModel.Duplicate().Cast<TowerModel>();
-                int fatigue = TowerTactics.TowerFatigue[towerModelBaseId];
+                int fatigue = TowerTactics.TowerFatigue[__instance.towerModel.baseId];
                 for (int i = 0; i < fatigue; i++)
                 {
                     foreach (var Weapon in towerModel.GetWeapons())
                     {
                         Weapon.rate += 0.05f;
-                        ModHelper.Msg<TowerTactics>(towerModel.GetWeapon().rate);
+                        //ModHelper.Msg<TowerTactics>(towerModel.GetWeapon().rate);
                     }
                 }
                 __instance.UpdateRootModel(towerModel);
@@ -250,16 +275,29 @@ public class Tower_OnUpgrade_Patch
     {
         string towerModelBaseId = __instance.towerModel.baseId;
         var towerModel = __instance.rootModel.Duplicate().Cast<TowerModel>();
-        int fatigue = TowerTactics.TowerFatigue[towerModelBaseId];
+        int fatigue = TowerTactics.TowerFatigue[__instance.towerModel.baseId];
         for (int i = 0; i < fatigue; i++)
         {
             foreach (var Weapon in towerModel.GetWeapons())
             {
                 Weapon.rate += 0.05f;
-                ModHelper.Msg<TowerTactics>(towerModel.GetWeapon().rate);
+                //ModHelper.Msg<TowerTactics>(towerModel.GetWeapon().rate);
             }
         }
         __instance.UpdateRootModel(towerModel);
+    }
+}
+
+[HarmonyPatch(typeof(InGame), nameof(InGame.SellTower))]
+static class InGame_SellTower_Patch
+{
+    [HarmonyPostfix]
+    public static void Postfix(InGame __instance, TowerToSimulation tower)
+    {
+        if(TowerTactics.TowerFatigue.ContainsKey(tower.tower.towerModel.baseId))
+        {
+            TowerTactics.TowerFatigue.Remove(tower.tower.towerModel.baseId);
+        }
     }
 }
 

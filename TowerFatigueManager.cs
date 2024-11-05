@@ -1,5 +1,6 @@
 ﻿using BTD_Mod_Helper;
 using BTD_Mod_Helper.Extensions;
+using Il2CppAssets.Scripts;
 using Il2CppAssets.Scripts.Models.Towers;
 using Il2CppAssets.Scripts.Unity.UI_New.InGame;
 using Il2CppAssets.Scripts.Unity.UI_New.Popups;
@@ -17,76 +18,69 @@ namespace TowerTactics
 {
     internal static class TowerFatigueManager
     {
-        public static void IncreaseFatigueForTowerType(string towerModelBaseId)
+        public static void IncreaseFatigueForTowerType(string towerId)
         {
-            if (!TowerTactics.TowerFatigue.ContainsKey(towerModelBaseId))
+            if (!TowerTactics.TowerFatigue.ContainsKey(towerId))
             {
-                TowerTactics.TowerFatigue[towerModelBaseId] = 0;
+                TowerTactics.TowerFatigue[towerId] = 0;
             }
-            if (TowerTactics.TowerFatigue[towerModelBaseId] <= 30)
+            if (TowerTactics.TowerFatigue[towerId] < TowerTactics.MaxFatigue)
             {
-                TowerTactics.TowerFatigue[towerModelBaseId] += 1;
+                TowerTactics.TowerFatigue[towerId] += 1;
             }
-            if (TowerTactics.TowerFatigue[towerModelBaseId] >= 31)
+            if (TowerTactics.TowerFatigue[towerId] > TowerTactics.MaxFatigue)
             {
-                TowerTactics.TowerFatigue[towerModelBaseId] -= 1;
+                TowerTactics.TowerFatigue[towerId] = TowerTactics.MaxFatigue;
             }
         }
-        public static void ApplyFatigueDebuff(string towerModelBaseId)
+        public static void ApplyFatigueDebuff(string towerId)
         {
-            var Towers = InGame.instance.GetAllTowerToSim().FindAll(sim => sim.tower.towerModel.baseId == towerModelBaseId);
-            foreach (var Tower in Towers)
+            var tower = InGame.instance.GetAllTowerToSim().First(tts => tts.tower.towerModel.baseId == towerId).tower;
+
+            var towerModel = tower.rootModel.Duplicate().Cast<TowerModel>();
+            foreach (var Weapon in towerModel.GetWeapons())
             {
-                {
-                    var towerModel = Tower.tower.rootModel.Duplicate().Cast<TowerModel>();
-                    foreach (var Weapon in towerModel.GetWeapons())
-                    {
-                        Weapon.rate += 0.05f;
-                        ModHelper.Msg<TowerTactics>(towerModel.GetWeapon().rate);
-                    }
-                    if (FatigueUi.instance != null)
-                    {
-                        FatigueUi.instance.Close();
-                        FatigueUi.CreatePanel();
-                    }
-                    Tower.tower.UpdateRootModel(towerModel);
-                }
+                Weapon.rate += 0.05f;
+                //ModHelper.Msg<TowerTactics>(towerModel.GetWeapon().rate);
             }
+            if (FatigueUi.instance != null)
+            {
+                FatigueUi.instance.Close();
+                FatigueUi.CreatePanel();
+            }
+            tower.UpdateRootModel(towerModel);
         }
-        public static async Task ResetRateAsync(string towerModelBaseId)
+
+        public static async Task ResetRateAsync(string towerId)
         {
             Values.Values.IsResting = true;
-            var Towers = InGame.instance.GetAllTowerToSim().FindAll(sim => sim.tower.towerModel.baseId == towerModelBaseId);
-            ModHelper.Msg<TowerTactics>($"Found {Towers.Count} towers with baseId {towerModelBaseId}");
+            var tower = InGame.instance.GetAllTowerToSim().First(tts => tts.tower.towerModel.baseId == towerId).tower;
 
-            foreach (var Tower in Towers)
+            var towerModel = tower.rootModel.Duplicate().Cast<TowerModel>();
+            int fatigue = TowerTactics.TowerFatigue[towerId];
+
+            foreach (var Weapon in towerModel.GetWeapons())
             {
-                var towerModel = Tower.tower.rootModel.Duplicate().Cast<TowerModel>();
-                int fatigue = TowerTactics.TowerFatigue[towerModelBaseId];
-
-                foreach (var Weapon in towerModel.GetWeapons())
+                if (fatigue > 0)
                 {
-                    if (fatigue > 0)
-                    {
 
-                        for (int i = 0; i < fatigue; i++)
-                        {
-                            Weapon.rate -= 0.05f;
-                            ModHelper.Msg<TowerTactics>(towerModel.GetWeapon().rate);
-                        }
-                    }
-                    if (FatigueUi.instance != null)
-                        {
-                        FatigueUi.instance.Close();
-                        FatigueUi.CreatePanel();
+                    for (int i = 0; i < fatigue; i++)
+                    {
+                        Weapon.rate -= 0.05f;
+                        //ModHelper.Msg<TowerTactics>(towerModel.GetWeapon().rate);
                     }
                 }
-
-                Tower.tower.UpdateRootModel(towerModel);
-
-                TowerTactics.TowerFatigue[towerModelBaseId] = 0;
+                if (FatigueUi.instance != null)
+                {
+                    FatigueUi.instance.Close();
+                    FatigueUi.CreatePanel();
+                }
             }
-            await Task.Delay(5000); 
+
+            tower.UpdateRootModel(towerModel);
+
+            TowerTactics.TowerFatigue[towerId] = 0;
+            await Task.Delay(5000);
             Values.Values.IsResting = false;
         }
     }
